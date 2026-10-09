@@ -1,26 +1,28 @@
 import streamlit as st
 import numpy as np
 import cv2
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.image import img_to_array
 
 
-# Load the trained model
+@st.cache_resource
+def load_detection_model():
+    return load_model("deepfake_detection_model.h5")
 
-model = load_model('deepfake_detection_model.h5')
+
+model = load_detection_model()
 
 # Preprocess the image
 def preprocess_image(image):
     image = cv2.resize(image, (96, 96))
-    image = img_to_array(image)
-    image = np.expand_dims(image, axis=0)
-    image = image / 255.0
-    return image
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = preprocess_input(image.astype(np.float32))
+    return np.expand_dims(image, axis=0)
 
 # Predict if the image is fake or real
 def predict_image(image):
     processed_image = preprocess_image(image)
-    prediction = model.predict(processed_image)
+    prediction = model.predict(processed_image, verbose=0)
     class_label = np.argmax(prediction, axis=1)[0]
     return "Fake" if class_label == 0 else "Real"
 
@@ -39,6 +41,9 @@ if uploaded_file is not None:
     # To read file as bytes:
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     image = cv2.imdecode(file_bytes, 1)
+    if image is None:
+        st.error("The uploaded file could not be decoded as an image.")
+        st.stop()
 
     # Display the uploaded image
     st.image(image, channels="BGR")

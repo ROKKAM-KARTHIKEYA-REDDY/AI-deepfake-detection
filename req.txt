@@ -2,8 +2,4 @@ streamlit
 numpy
 opencv-python
 tensorflow
-keras
-pandas
-scikit-learn
 matplotlib
-tqdm
